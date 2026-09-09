@@ -1,0 +1,6 @@
+{
+  "name": "AI Video Generator",
+  "description": "Create long-form AI videos with automatic voiceover, animated captions, custom scenes, and free export.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -24,34 +24,43 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 22
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Set up Java 21 (Temurin)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Accept Android SDK Licenses
+      - name: Configure Android SDK & Licenses
         run: |
-          echo "y" | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo -e "\n856e2d4107d7641809cb173ec4b61b42490a94d1" > "$ANDROID_HOME/licenses/android-sdk-arm-dbt-license"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Install NPM Dependencies
         run: |
-          npm install --legacy-peer-deps || npm install --force
+          npm install --legacy-peer-deps
 
       - name: Build Web Application
         run: |
-          npx vite build
+          npm run build
 
-      - name: Sync Capacitor Android Project
+      - name: Prepare Capacitor Android Project
         run: |
-          # If android platform is missing, create it
-          if [ ! -f "android/gradlew" ]; then
-            npx cap add android || true
+          # If android directory is missing or incomplete, recreate it
+          if [ ! -f "android/build.gradle" ] || [ ! -f "android/gradlew" ]; then
+            echo "Android project missing or incomplete. Recreating fresh with Capacitor..."
+            rm -rf android
+            npx cap add android
           fi
           npx cap sync android
 
@@ -59,14 +68,20 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Regenerating gradle wrapper..."
+            gradle wrapper || true
+          fi
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
           cd ..
 
       - name: Prepare APK Outputs
         run: |
           mkdir -p build-output
           # Find generated apk files
-          find android/app/build/outputs/apk/ -type f -name "*.apk" -exec cp {} build-output/ \;
+          find android/app/build/outputs/apk/ -type f -name "*.apk" -exec cp {} build-output/ \; || true
+          find android/ -type f -name "*.apk" -exec cp {} build-output/ \; || true
           cd build-output
           # Ensure a friendly named apk exists
           for f in *debug*.apk *.apk; do

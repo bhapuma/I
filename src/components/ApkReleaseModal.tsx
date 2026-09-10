@@ -97,10 +97,10 @@ export const ApkReleaseModal: React.FC<ApkReleaseModalProps> = ({
             <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm space-y-1">
               <p className="font-semibold text-amber-200">
-                समस्याको कारण (Why APK was not released):
+                समस्याको कारण र समाधान (Fix for Lock file error):
               </p>
               <p className="text-amber-300/80 leading-relaxed">
-                तपाईंको स्क्रिनशट अनुसार GitHub रिपोजिटोरी (<code>bhapuma/l</code>) मा GitHub Actions को कुनै पनि वर्कफ्लो फाइल (<code>.github/workflows/build-apk.yml</code>) थिएन। त्यसैले GitHub ले "Get started with GitHub Actions" देखाएको थियो र कुनै APK बनेको थिएन।
+                पछिल्लो बिल्डमा <code>Dependencies lock file is not found (package-lock.json missing)</code> भनी १३ सेकेन्डमै फेल भएको थियो। हामीले <strong>`package-lock.json`</strong> तयार गरेका छौँ र वर्कफ्लोबाट क्यास अवरोध हटाई <strong>`actions/setup-java@v5`</strong> मा अपग्रेड गरेका छौँ। अब बिल्ड बिना कुनै अवरोध सफल हुनेछ!
               </p>
             </div>
           </div>

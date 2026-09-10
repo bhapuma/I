@@ -7,6 +7,7 @@ import { PromptWizard } from "./components/PromptWizard";
 import { SceneEditorModal } from "./components/SceneEditorModal";
 import { VoiceSettingsDrawer } from "./components/VoiceSettingsDrawer";
 import { ExportModal } from "./components/ExportModal";
+import { ApkReleaseModal } from "./components/ApkReleaseModal";
 import { generateVideoPlan, expandVideoScenes } from "./services/geminiService";
 import {
   Sparkles,
@@ -20,6 +21,7 @@ import {
   HelpCircle,
   Film,
   Volume2,
+  Smartphone,
 } from "lucide-react";
 
 export default function App() {
@@ -32,6 +34,7 @@ export default function App() {
   const [editingSceneIndex, setEditingSceneIndex] = useState<number | null>(null);
   const [isVoiceDrawerOpen, setIsVoiceDrawerOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isApkModalOpen, setIsApkModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExpanding, setIsExpanding] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -271,6 +274,17 @@ export default function App() {
               <span className="hidden sm:inline">आवाज र संगीत (Audio)</span>
             </button>
 
+            {/* Android APK & Mobile App Button */}
+            <button
+              onClick={() => setIsApkModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-500/10 cursor-pointer"
+              title="Android APK Release & Mobile App Setup"
+            >
+              <Smartphone className="w-4 h-4 text-indigo-400" />
+              <span className="hidden md:inline">मोबाइल एप (APK)</span>
+              <span className="md:hidden">APK</span>
+            </button>
+
             {/* Export Video Button */}
             <button
               onClick={() => setIsExportModalOpen(true)}
@@ -501,6 +515,11 @@ export default function App() {
         bgmVolume={project.bgmVolume}
         voiceSettings={project.voiceSettings}
         videoTitle={project.title}
+      />
+
+      <ApkReleaseModal
+        isOpen={isApkModalOpen}
+        onClose={() => setIsApkModalOpen(false)}
       />
     </div>
   );

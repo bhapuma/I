@@ -24,60 +24,63 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: 'npm'
 
-      - name: Set up Java 17
+      - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: |
+          echo "y" | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
       - name: Install NPM Dependencies
         run: |
-          npm install --force
+          npm install --legacy-peer-deps || npm install --force
 
       - name: Build Web Application
         run: |
           npx vite build
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor Android Project
         run: |
+          # If android platform is missing, create it
+          if [ ! -f "android/gradlew" ]; then
+            npx cap add android || true
+          fi
           npx cap sync android
 
-      - name: Make Gradlew Executable
-        run: |
-          chmod +x android/gradlew
-
-      - name: Build Android APK with Gradle
+      - name: Build Android Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug || ./gradlew assembleRelease
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
           cd ..
 
       - name: Prepare APK Outputs
         run: |
           mkdir -p build-output
-          # Copy debug or release APKs
+          # Find generated apk files
           find android/app/build/outputs/apk/ -type f -name "*.apk" -exec cp {} build-output/ \;
           cd build-output
-          # Provide standard names
-          for f in *.apk; do
+          # Ensure a friendly named apk exists
+          for f in *debug*.apk *.apk; do
             if [ -f "$f" ]; then
               echo "Found APK: $f"
               cp "$f" "AI-Video-Studio-app.apk"
               break
             fi
           done
-          ls -la
+          echo "APK build directory contents:"
+          ls -lh
 
-      - name: Upload APK as Workflow Artifact
+      - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: AI-Video-Studio-APK
@@ -86,23 +89,21 @@ jobs:
 
       - name: Create or Update GitHub Release
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag_name || format('v1.0.{0}', github.run_number) }}
           name: AI Video Studio APK (${{ github.event.inputs.tag_name || format('v1.0.{0}', github.run_number) }})
           body: |
             ## 📱 AI Video Studio - Android APK Release
-            
+
             तपाईंको AI भिडियो स्टुडियो एन्ड्रोइड एपको नयाँ APK सफलतापूर्वक तयार भएको छ।
-            
+
             ### 📥 Download & Installation Guide:
-            1. तल दिइएको **`AI-Video-Studio-app.apk`** फाइल डाउनलोड गर्नुहोस्।
-            2. डाउनलोड पूरा भएपछि फाइल खोलेर **Install** मा थिच्नुहोस्।
+            1. तल Assets बाट **`AI-Video-Studio-app.apk`** फाइल डाउनलोड गर्नुहोस्।
+            2. डाउनलोड पूरा भएपछि फाइल खोलेर **Install** थिच्नुहोस्।
             3. यदि "Install unknown apps" सोधेमा ब्राउजरलाई अनुमति दिनुहोस् (Allow from this source)।
             4. एप खोल्नुहोस् र बिना कुनै सीमा असीमित एआई भिडियो र भ्वाइसओभर बनाउनुहोस्!
-            
-            ---
-            *Built automatically via GitHub Actions.*
           files: build-output/*.apk
           draft: false
           prerelease: false
